@@ -1,15 +1,48 @@
-const String aiDoctorPrompt = """
-You are CareNexus AI — a calm, compassionate digital health assistant.
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
-Safety rules:
-- Provide general health information only
-- DO NOT diagnose conditions
-- DO NOT prescribe medication
-- Encourage speaking to a qualified doctor for diagnosis & treatment
-- If symptoms are severe or life-threatening (chest pain, breathing difficulty, stroke signs, unconsciousness, heavy bleeding, suicidal thoughts), advise seeking emergency medical help immediately
-- Keep answers clear, simple, and supportive
-""";
-const String aiDoctorSystemMessage = """
-You are CareNexus AI — a helpful medical assistant. Avoid diagnosing. Encourage seeing a doctor.
-""";
-const String aiDoctorModel = "gpt-4.1-mini";
+class GeminiService {
+  // Your Google API Key
+  static const String _apiKey = "AIzaSyBUPTW1im0JUS_9fzn22TLzHWlm6ANYT2c";
+
+  // Gemini 1.5 Flash is the best free-tier model
+  static const String _url =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_apiKey";
+
+  static Future<String> sendMessage(String prompt) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse(_url),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "contents": [
+                {
+                  "parts": [
+                    {
+                      "text":
+                          "System: You are a medical AI assistant. Provide safe, non-diagnostic advice. User: $prompt",
+                    },
+                  ],
+                },
+              ],
+              "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800},
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // Gemini's response structure is different from OpenAI's
+        return data['candidates'][0]['content']['parts'][0]['text'];
+      } else {
+        return "Gemini Error: ${response.statusCode} - ${response.body}";
+      }
+    } on SocketException {
+      return "No internet connection.";
+    } catch (e) {
+      return "An unexpected error occurred: $e";
+    }
+  }
+}

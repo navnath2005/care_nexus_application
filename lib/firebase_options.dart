@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '963301531292',
     projectId: 'carenexus-57c87',
     authDomain: 'carenexus-57c87.firebaseapp.com',
+    databaseURL: 'https://carenexus-57c87-default-rtdb.firebaseio.com',
     storageBucket: 'carenexus-57c87.firebasestorage.app',
     measurementId: 'G-N881L5CWNV',
   );
@@ -55,6 +56,7 @@ class DefaultFirebaseOptions {
     appId: '1:963301531292:android:c2852dad7bc2ce298c9759',
     messagingSenderId: '963301531292',
     projectId: 'carenexus-57c87',
+    databaseURL: 'https://carenexus-57c87-default-rtdb.firebaseio.com',
     storageBucket: 'carenexus-57c87.firebasestorage.app',
   );
 
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     appId: '1:963301531292:ios:6615bc68dbf3f2e88c9759',
     messagingSenderId: '963301531292',
     projectId: 'carenexus-57c87',
+    databaseURL: 'https://carenexus-57c87-default-rtdb.firebaseio.com',
     storageBucket: 'carenexus-57c87.firebasestorage.app',
     iosClientId: '963301531292-607esfkeisjj362u7lt9d5pr0nm10hpe.apps.googleusercontent.com',
     iosBundleId: 'com.example.careNexus',
@@ -73,6 +76,7 @@ class DefaultFirebaseOptions {
     appId: '1:963301531292:ios:6615bc68dbf3f2e88c9759',
     messagingSenderId: '963301531292',
     projectId: 'carenexus-57c87',
+    databaseURL: 'https://carenexus-57c87-default-rtdb.firebaseio.com',
     storageBucket: 'carenexus-57c87.firebasestorage.app',
     iosClientId: '963301531292-607esfkeisjj362u7lt9d5pr0nm10hpe.apps.googleusercontent.com',
     iosBundleId: 'com.example.careNexus',
@@ -84,7 +88,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '963301531292',
     projectId: 'carenexus-57c87',
     authDomain: 'carenexus-57c87.firebaseapp.com',
+    databaseURL: 'https://carenexus-57c87-default-rtdb.firebaseio.com',
     storageBucket: 'carenexus-57c87.firebasestorage.app',
     measurementId: 'G-K9BZ2LJTE6',
   );
+
 }

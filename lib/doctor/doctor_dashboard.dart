@@ -99,19 +99,24 @@ class _DoctorDashboardState extends State<DoctorDashboard>
             final initial = (display?.isNotEmpty == true)
                 ? display![0].toUpperCase()
                 : (user?.email?.isNotEmpty == true
-                    ? user!.email![0].toUpperCase()
-                    : 'D');
+                      ? user!.email![0].toUpperCase()
+                      : 'D');
             return IconButton(
               onPressed: () => Scaffold.of(context).openDrawer(),
               icon: CircleAvatar(
                 radius: 18,
-                backgroundImage:
-                    photoUrl != null ? NetworkImage(photoUrl) : null,
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl)
+                    : null,
                 backgroundColor: const Color(0xFF1e3a8a),
                 child: photoUrl == null
-                    ? Text(initial,
+                    ? Text(
+                        initial,
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold))
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
                     : null,
               ),
             );
@@ -120,13 +125,13 @@ class _DoctorDashboardState extends State<DoctorDashboard>
         title: const Text(
           "Doctor Dashboard",
           style: TextStyle(
-              fontWeight: FontWeight.w700, fontSize: 20, letterSpacing: 0.5),
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            letterSpacing: 0.5,
+          ),
         ),
         actions: [
-          IconButton(
-            onPressed: logout,
-            icon: const Icon(Icons.logout),
-          )
+          IconButton(onPressed: logout, icon: const Icon(Icons.logout)),
         ],
       ),
       drawer: Drawer(
@@ -142,8 +147,8 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                 final initial = (name.isNotEmpty)
                     ? name[0].toUpperCase()
                     : (user?.email?.isNotEmpty == true
-                        ? user!.email![0].toUpperCase()
-                        : 'D');
+                          ? user!.email![0].toUpperCase()
+                          : 'D');
                 return DrawerHeader(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -158,15 +163,19 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                     children: [
                       CircleAvatar(
                         radius: 35,
-                        backgroundImage:
-                            photoUrl != null ? NetworkImage(photoUrl) : null,
+                        backgroundImage: photoUrl != null
+                            ? NetworkImage(photoUrl)
+                            : null,
                         backgroundColor: const Color(0xFF1e3a8a),
                         child: photoUrl == null
-                            ? Text(initial,
+                            ? Text(
+                                initial,
                                 style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold))
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
                             : null,
                       ),
                       Column(
@@ -199,8 +208,10 @@ class _DoctorDashboardState extends State<DoctorDashboard>
             ),
             const Divider(),
             ListTile(
-              leading:
-                  const Icon(Icons.calendar_today, color: Color(0xFF1e40af)),
+              leading: const Icon(
+                Icons.calendar_today,
+                color: Color(0xFF1e40af),
+              ),
               title: const Text("Appointments"),
               onTap: () {},
               dense: false,
@@ -237,8 +248,6 @@ class _DoctorDashboardState extends State<DoctorDashboard>
         onPressed: () {
           // Navigate to chat page
           if (user != null) {
-            final doctorUid = FirebaseAuth.instance.currentUser!.uid;
-            final patientUid = 'pat_001'; // Example patient ID
             final chatId = _getChatId('doctor_${user!.uid}', 'pat_001');
             Navigator.push(
               context,
@@ -324,15 +333,20 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.2),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Row(
                                       children: [
-                                        Icon(Icons.check_circle,
-                                            size: 16, color: Colors.white),
+                                        Icon(
+                                          Icons.check_circle,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
                                         SizedBox(width: 6),
                                         Text(
                                           "Active",
@@ -395,7 +409,9 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF10b981).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -522,7 +538,8 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const PatientListPage()),
+                              builder: (_) => const PatientListPage(),
+                            ),
                           );
                         },
                       ),
@@ -535,7 +552,8 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const PrescriptionsPage()),
+                              builder: (_) => const PrescriptionsPage(),
+                            ),
                           );
                         },
                       ),
@@ -548,7 +566,8 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => const ReportsPage()),
+                              builder: (_) => const ReportsPage(),
+                            ),
                           );
                         },
                       ),
@@ -618,8 +637,9 @@ class _DoctorDashboardState extends State<DoctorDashboard>
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFef4444)
-                                        .withOpacity(0.2),
+                                    color: const Color(
+                                      0xFFef4444,
+                                    ).withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Icon(
@@ -771,9 +791,10 @@ class _ProfessionalStatCardState extends State<_ProfessionalStatCard>
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
     _controller.forward();
   }
@@ -792,10 +813,7 @@ class _ProfessionalStatCardState extends State<_ProfessionalStatCard>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: widget.color.withOpacity(0.15),
-            width: 1.5,
-          ),
+          border: Border.all(color: widget.color.withOpacity(0.15), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: widget.color.withOpacity(0.12),
@@ -819,11 +837,7 @@ class _ProfessionalStatCardState extends State<_ProfessionalStatCard>
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                widget.icon,
-                color: widget.color,
-                size: 32,
-              ),
+              child: Icon(widget.icon, color: widget.color, size: 32),
             ),
             const SizedBox(height: 12),
             Text(
@@ -887,13 +901,15 @@ class _ProfessionalActionCardState extends State<_ProfessionalActionCard>
       vsync: this,
     );
 
-    _elevationAnimation = Tween<double>(begin: 0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _elevationAnimation = Tween<double>(
+      begin: 0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.03,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -921,7 +937,8 @@ class _ProfessionalActionCardState extends State<_ProfessionalActionCard>
               boxShadow: [
                 BoxShadow(
                   color: widget.color.withOpacity(
-                      0.15 * (_elevationAnimation.value)), // Dynamic shadow
+                    0.15 * (_elevationAnimation.value),
+                  ), // Dynamic shadow
                   blurRadius: 12 + (6 * _elevationAnimation.value),
                   offset: Offset(0, 2 + (4 * _elevationAnimation.value)),
                 ),
@@ -947,11 +964,7 @@ class _ProfessionalActionCardState extends State<_ProfessionalActionCard>
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        widget.icon,
-                        color: widget.color,
-                        size: 34,
-                      ),
+                      child: Icon(widget.icon, color: widget.color, size: 34),
                     ),
                     const SizedBox(height: 14),
                     Text(
@@ -1029,11 +1042,7 @@ class _ProfessionalAppointmentCard extends StatelessWidget {
               color: const Color(0xFF3b82f6).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.person,
-              color: Color(0xFF3b82f6),
-              size: 24,
-            ),
+            child: const Icon(Icons.person, color: Color(0xFF3b82f6), size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1076,10 +1085,7 @@ class _ProfessionalAppointmentCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: statusColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: statusColor.withOpacity(0.3),
-                width: 1,
-              ),
+              border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
             ),
             child: Text(
               status,

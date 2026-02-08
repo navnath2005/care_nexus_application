@@ -21,27 +21,40 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
         reasonCtrl.text.isEmpty ||
         date == null ||
         time == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
       return;
     }
 
-    await firestore.collection("appointments").add({
-      "name": nameCtrl.text,
-      "reason": reasonCtrl.text,
-      "date": "${date!.day}/${date!.month}/${date!.year}",
-      "time": time!.format(context),
-      "status": "pending", // important
-      "createdAt": FieldValue.serverTimestamp(),
-    });
+    try {
+      await firestore.collection("appointments").add({
+        "name": nameCtrl.text,
+        "reason": reasonCtrl.text,
+        "date": "${date!.day}/${date!.month}/${date!.year}",
+        "time": time!.format(context),
+        "status": "pending",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
 
-    nameCtrl.clear();
-    reasonCtrl.clear();
-    setState(() {
-      date = null;
-      time = null;
-    });
+      if (!mounted) return; // Best practice: check if widget is still active
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Appointment Booked Successfully!")),
+      );
+
+      nameCtrl.clear();
+      reasonCtrl.clear();
+      setState(() {
+        date = null;
+        time = null;
+      });
+    } catch (e) {
+      debugPrint("Firestore Error: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));
+    }
   }
 
   @override
@@ -76,9 +89,11 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                       );
                       setState(() {});
                     },
-                    child: Text(date == null
-                        ? "Pick Date"
-                        : "${date!.day}/${date!.month}/${date!.year}"),
+                    child: Text(
+                      date == null
+                          ? "Pick Date"
+                          : "${date!.day}/${date!.month}/${date!.year}",
+                    ),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton(
@@ -90,7 +105,8 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                       setState(() {});
                     },
                     child: Text(
-                        time == null ? "Pick Time" : time!.format(context)),
+                      time == null ? "Pick Time" : time!.format(context),
+                    ),
                   ),
                 ],
               ),
@@ -105,8 +121,10 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
 
               const SizedBox(height: 30),
               const Divider(),
-              const Text("My Appointments",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "My Appointments",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 10),
 
               // ---- Appointment Status List ----
@@ -151,8 +169,8 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                             backgroundColor: status == "accepted"
                                 ? Colors.green
                                 : status == "rejected"
-                                    ? Colors.red
-                                    : Colors.orange,
+                                ? Colors.red
+                                : Colors.orange,
                           ),
                         ),
                       );

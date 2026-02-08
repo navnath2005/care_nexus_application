@@ -1,145 +1,66 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
-class AiChatPage extends StatefulWidget {
-  const AiChatPage({super.key});
+class GeminiService {
+  // Your Google API Key
+  static const String _apiKey = "AIzaSyAACUIbD1zprN-pNYhzoyVqWpy8ILBk5Gg";
 
-  @override
-  State<AiChatPage> createState() => _AiChatPageState();
-}
+  static const String _url =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_apiKey";
 
-class _AiChatPageState extends State<AiChatPage> {
-  final user = FirebaseAuth.instance.currentUser;
-  late Future<Map<String, dynamic>?> userFuture;
+  static Future<String> sendMessage(
+    String prompt, {
+    List<Map<String, String>>? history,
+  }) async {
+    try {
+      // Prepare the history for Gemini's format
+      // Gemini uses 'user' and 'model' instead of 'user' and 'assistant'
+      List<Map<String, dynamic>> contents = [];
 
-  @override
-  void initState() {
-    super.initState();
-    userFuture = getUserData();
-  }
+      if (history != null) {
+        for (var msg in history) {
+          contents.add({
+            "role": msg['role'] == "user" ? "user" : "model",
+            "parts": [
+              {"text": msg['content']},
+            ],
+          });
+        }
+      }
 
-  Future<Map<String, dynamic>?> getUserData() async {
-    if (user == null) return null;
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user!.uid)
-        .get();
-    return doc.data();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xfff4f6fb),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.blue.shade600,
-        leading: Builder(
-          builder: (context) {
-            final photoUrl = user?.photoURL;
-            final display = user?.displayName;
-            final initial = (display?.isNotEmpty == true)
-                ? display![0].toUpperCase()
-                : (user?.email?.isNotEmpty == true
-                    ? user!.email![0].toUpperCase()
-                    : 'U');
-            return IconButton(
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              icon: CircleAvatar(
-                radius: 18,
-                backgroundImage:
-                    photoUrl != null ? NetworkImage(photoUrl) : null,
-                backgroundColor: Colors.blue.shade700,
-                child: photoUrl == null
-                    ? Text(initial, style: const TextStyle(color: Colors.white))
-                    : null,
-              ),
-            );
+      // Add the current prompt
+      contents.add({
+        "role": "user",
+        "parts": [
+          {
+            "text":
+                "System: You are a medical AI assistant. Provide safe advice. User prompt: $prompt",
           },
-        ),
-        title: const Text(
-          "AI Chat",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            FutureBuilder<Map<String, dynamic>?>(
-              future: userFuture,
-              builder: (context, snapshot) {
-                final name =
-                    snapshot.data?['name'] ?? user?.displayName ?? "User";
-                final photoUrl = user?.photoURL;
-                final initial = (name.isNotEmpty)
-                    ? name[0].toUpperCase()
-                    : (user?.email?.isNotEmpty == true
-                        ? user!.email![0].toUpperCase()
-                        : 'U');
-                return DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade600,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 30,
-                        backgroundImage:
-                            photoUrl != null ? NetworkImage(photoUrl) : null,
-                        backgroundColor: Colors.blue.shade700,
-                        child: photoUrl == null
-                            ? Text(initial,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 24))
-                            : null,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        user?.email ?? "",
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.chat),
-              title: const Text("Chat History"),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text("Settings"),
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text("Logout"),
-              onTap: () {
-                FirebaseAuth.instance.signOut();
-              },
-            ),
-          ],
-        ),
-      ),
-      body: const Center(
-        child: Text("AI Chat Page"),
-      ),
-    );
+        ],
+      });
+
+      final response = await http
+          .post(
+            Uri.parse(_url),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "contents": contents,
+              "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800},
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['candidates'][0]['content']['parts'][0]['text'];
+      } else {
+        return "Gemini Error: ${response.statusCode}";
+      }
+    } on SocketException {
+      return "Check your internet connection.";
+    } catch (e) {
+      return "Unexpected error: $e";
+    }
   }
 }

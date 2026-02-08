@@ -1,15 +1,11 @@
 import 'package:care_nexus/doctor/doctor_dashboard.dart';
 import 'package:care_nexus/firebase_options.dart';
 import 'package:care_nexus/patient/patient_dashboard.dart';
-import 'package:care_nexus/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-import 'patient/patient_home.dart';
-import 'doctor/doctor_home.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -181,13 +177,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  bool _isPasswordVisible = false;
+
   Future<void> login() async {
-    // ✅ Close keyboard to avoid FocusScope crash
     FocusManager.instance.primaryFocus?.unfocus();
 
     if (!_form.currentState!.validate()) return;
 
-    if (!mounted) return;
     setState(() => loading = true);
 
     try {
@@ -197,8 +193,6 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       final user = cred.user;
-
-      // 🔐 Email verification ONLY for email/password users
       final isEmailPasswordUser =
           user?.providerData.any((p) => p.providerId == 'password') ?? false;
 
@@ -210,16 +204,22 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Welcome back 👋")));
+      // Check mounted before showing SnackBar
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Welcome back 👋")));
+      }
     } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
+      // Check mounted before showing Error SnackBar
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
+      }
     } finally {
+      // This is where the crash usually happens.
+      // If the AuthGate has already swapped pages, mounted is false.
       if (mounted) {
         setState(() => loading = false);
       }
@@ -283,10 +283,22 @@ class _LoginPageState extends State<LoginPage> {
 
                     TextFormField(
                       controller: password,
-                      obscureText: true,
-                      decoration: const InputDecoration(
+                      obscureText: !_isPasswordVisible,
+                      decoration: InputDecoration(
                         labelText: "Password",
-                        prefixIcon: Icon(Icons.lock),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                        ),
                       ),
                       validator: (v) => v != null && v.length >= 6
                           ? null
@@ -325,7 +337,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Image.asset("assets/google.png", height: 22),
+                            Image.asset("assets/google.jpg", height: 22),
                             const SizedBox(width: 10),
                             const Text(
                               "Continue with Google",

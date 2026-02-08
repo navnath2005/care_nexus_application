@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auth/login_page.dart';
-import 'routes.dart' hide RoleRouter;
 
 class CareNexus extends StatelessWidget {
   const CareNexus({super.key});

@@ -44,6 +44,27 @@ class PrescriptionsPage extends StatelessWidget {
               } else {
                 statusColor = Colors.blue;
               }
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  title: Text(data['medicineName'] ?? 'Medicine'),
+                  subtitle: Text(data['quantity'] ?? 'N/A'),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      status,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ),
+                ),
+              );
             },
           );
         },

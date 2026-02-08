@@ -1,20 +1,37 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:care_nexus/services/location_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'location_permission_service.dart';
 
-class SOSService {
-  final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+class SosService {
+  static get import => null;
 
-  Future<void> sendSOS({String? location}) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+  static Future<void> navigateToNearestAmbulance() async {
+    // 🔥 FORCE permission dialog
+    await PermissionService.requestLocationPermission();
 
-    await _firestore.collection("sos_requests").add({
-      "userId": user.uid,
-      "email": user.email,
-      "location": location ?? "Unknown",
-      "timestamp": FieldValue.serverTimestamp(),
-      "status": "pending",
-    });
+    // Now Android WILL ask permission
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    Future<void> triggerSOS() async {
+      final pos = await LocationService.getCurrentLocation();
+      // send pos.latitude & pos.longitude
+    }
+
+    final Uri mapsUri = Uri(
+      scheme: "https",
+      host: "www.google.com",
+      path: "/maps/dir/",
+      queryParameters: {
+        "api": "1",
+        "origin": "${position.latitude},${position.longitude}",
+        "destination": "ambulance",
+        "travelmode": "driving",
+      },
+    );
+
+    await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
   }
 }
