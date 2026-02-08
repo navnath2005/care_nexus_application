@@ -1,6 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
+  // ✅ EXISTING METHOD (UNCHANGED)
   static Future<Position> getCurrentLocation() async {
     LocationPermission permission = await Geolocator.checkPermission();
 
@@ -14,6 +15,16 @@ class LocationService {
 
     return await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
+    );
+  }
+
+  // ✅ NEW: LIVE LOCATION STREAM (ONLY UPDATE)
+  static Stream<Position> getLiveLocation() {
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10, // update every 10 meters
+      ),
     );
   }
 }

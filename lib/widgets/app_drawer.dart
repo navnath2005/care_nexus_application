@@ -1,3 +1,4 @@
+import 'package:care_nexus/main.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../profile/profile_page.dart';
@@ -29,7 +30,7 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.logout),
             title: const Text("Logout"),
             onTap: () async => FirebaseAuth.instance.signOut(),
-          )
+          ),
         ],
       ),
     );

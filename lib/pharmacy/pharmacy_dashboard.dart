@@ -1,15 +1,111 @@
-import 'package:care_nexus/doctor/ReportsPage.dart';
-import 'package:care_nexus/pharmacy/InventoryPage.dart';
-import 'package:care_nexus/pharmacy/LowStockPage.dart';
-import 'package:care_nexus/pharmacy/MedicinesPage.dart';
-import 'package:care_nexus/pharmacy/OrdersPage.dart';
-import 'package:care_nexus/pharmacy/OrdersTodayPage.dart';
-import 'package:care_nexus/pharmacy/ProductsPage.dart';
+import 'package:care_nexus/main.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../auth/login_page.dart';
 
+// Import the pages from your file structure
+import 'OrdersTodayPage.dart';
+import 'LowStockPage.dart';
+import 'InventoryPage.dart';
+import 'ReportsPage.dart';
+import 'MedicinesPage.dart';
+import 'OrdersPage.dart';
+
+// --- NEW ORDER PAGE ---
+class NewOrderPage extends StatefulWidget {
+  const NewOrderPage({super.key});
+
+  @override
+  State<NewOrderPage> createState() => _NewOrderPageState();
+}
+
+class _NewOrderPageState extends State<NewOrderPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _customerController = TextEditingController();
+  final _itemController = TextEditingController();
+  final _amountController = TextEditingController();
+  bool _isLoading = false;
+
+  void _submitOrder() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      final user = FirebaseAuth.instance.currentUser;
+
+      try {
+        await FirebaseFirestore.instance.collection('orders').add({
+          'medicalId': user?.uid,
+          'customerName': _customerController.text.trim(),
+          'item': _itemController.text.trim(),
+          'totalPrice': double.parse(_amountController.text.trim()),
+          'timestamp': FieldValue.serverTimestamp(),
+          'status': 'Completed',
+        });
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Create New Order")),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _customerController,
+                decoration: const InputDecoration(labelText: "Customer Name"),
+                validator: (val) => val!.isEmpty ? "Enter name" : null,
+              ),
+              TextFormField(
+                controller: _itemController,
+                decoration: const InputDecoration(labelText: "Medicine/Item"),
+                validator: (val) => val!.isEmpty ? "Enter item" : null,
+              ),
+              TextFormField(
+                controller: _amountController,
+                decoration: const InputDecoration(
+                  labelText: "Price Amount (\$)",
+                ),
+                keyboardType: TextInputType.number,
+                validator: (val) => val!.isEmpty ? "Enter price" : null,
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Confirm Order",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- MAIN DASHBOARD ---
 class MedicalDashboard extends StatefulWidget {
   const MedicalDashboard({super.key});
 
@@ -19,14 +115,7 @@ class MedicalDashboard extends StatefulWidget {
 
 class _MedicalDashboardState extends State<MedicalDashboard> {
   final user = FirebaseAuth.instance.currentUser;
-
-  Future<Map<String, dynamic>?> getUserData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user!.uid)
-        .get();
-    return doc.data();
-  }
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void logout() async {
     await FirebaseAuth.instance.signOut();
@@ -41,510 +130,491 @@ class _MedicalDashboardState extends State<MedicalDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Medical Store Dashboard"),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logout,
+    if (user == null)
+      return const Scaffold(body: Center(child: Text("No User Logged In")));
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection("users")
+          .doc(user?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError)
+          return const Scaffold(body: Center(child: Text("Error")));
+        if (snapshot.connectionState == ConnectionState.waiting)
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+
+        final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final String userName = userData['name'] ?? 'Pharmacist';
+        final String userEmail = userData['email'] ?? 'pharmacy@care.com';
+
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: const Color(0xFFF8FAFC),
+          drawer: _buildSidebar(userName, userEmail),
+          appBar: _buildAppBar(),
+
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NewOrderPage()),
+            ),
+            backgroundColor: Colors.blue.shade700,
+            icon: const Icon(
+              Icons.add_shopping_cart_rounded,
+              color: Colors.white,
+            ),
+            label: const Text(
+              "New Order",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ],
-      ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: getUserData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
 
-          if (snapshot.hasError || !snapshot.hasData) {
-            return const Center(child: Text("Error loading user data"));
-          }
-
-          final userData = snapshot.data!;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Welcome Card
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Welcome, ${userData['name']}! 💊",
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          userData['email'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _buildWelcomeHeader(userName),
                 const SizedBox(height: 25),
-
-                // Stats Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ProductsPage()));
-                        },
-                        child: FutureBuilder(
-                          future: FirebaseFirestore.instance
-                              .collection('products')
-                              .where('medicalId', isEqualTo: user!.uid)
-                              .get(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const _StatCard(
-                                label: "Products",
-                                value: "...",
-                                color: Colors.blue,
-                              );
-                            }
-
-                            final count = snapshot.data!.docs.length;
-
-                            return _StatCard(
-                              label: "Products",
-                              value: count.toString(),
-                              color: Colors.blue,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const OrdersTodayPage()));
-                        },
-                        child: StreamBuilder(
-                          stream: FirebaseFirestore.instance
-                              .collection('orders')
-                              .where('medicalId', isEqualTo: user!.uid)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const _StatCard(
-                                label: "Orders Today",
-                                value: "...",
-                                color: Colors.green,
-                              );
-                            }
-
-                            final count = snapshot.data!.docs.length;
-
-                            return _StatCard(
-                              label: "Orders Today",
-                              value: count.toString(),
-                              color: Colors.green,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const LowStockPage()));
-                        },
-                        child: StreamBuilder(
-                          stream: FirebaseFirestore.instance
-                              .collection('products')
-                              .where('medicalId', isEqualTo: user!.uid)
-                              .where('quantity', isLessThan: 10)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const _StatCard(
-                                label: "Low Stock",
-                                value: "...",
-                                color: Colors.orange,
-                              );
-                            }
-
-                            final count = snapshot.data!.docs.length;
-
-                            return _StatCard(
-                              label: "Low Stock",
-                              value: count.toString(),
-                              color: Colors.orange,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-
-                // Quick Actions Section
-                const Text(
-                  "Quick Actions",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                const _SectionTitle(title: "Overview Today"),
                 const SizedBox(height: 15),
-
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
-                  children: [
-                    _ActionCard(
-                      icon: Icons.inventory,
-                      title: "Inventory",
-                      subtitle: "Manage stock",
-                      color: Colors.blue,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const InventoryPage()),
-                        );
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.shopping_cart,
-                      title: "Orders",
-                      subtitle: "View orders",
-                      color: Colors.green,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const OrdersPage()),
-                        );
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.local_pharmacy,
-                      title: "Medicines",
-                      subtitle: "Add/update",
-                      color: Colors.purple,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const MedicinesPage()),
-                        );
-                      },
-                    ),
-                    _ActionCard(
-                      icon: Icons.assessment,
-                      title: "Reports",
-                      subtitle: "Sales analytics",
-                      color: Colors.teal,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ReportsPage()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-
-                // Recent Orders
-                const Text(
-                  "Recent Orders",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                _buildHorizontalStats(),
+                const SizedBox(height: 30),
+                const _SectionTitle(title: "Inventory Status"),
                 const SizedBox(height: 15),
-
-                StreamBuilder(
-                  stream: FirebaseFirestore.instance
-                      .collection('orders')
-                      .orderBy('timestamp', descending: true)
-                      .limit(3)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final orders = snapshot.data!.docs;
-
-                    if (orders.isEmpty) {
-                      return const Text("No recent orders");
-                    }
-
-                    return Column(
-                      children: orders.map((doc) {
-                        final data = doc.data();
-
-                        String status = data['status'];
-                        Color statusColor;
-
-                        if (status == "Completed") {
-                          statusColor = Colors.green;
-                        } else if (status == "Processing") {
-                          statusColor = Colors.orange;
-                        } else {
-                          statusColor = Colors.blue;
-                        }
-
-                        return _OrderCard(
-                          orderId: data['orderId'],
-                          customerName: data['customerName'],
-                          medicines: data['medicines'].toString(),
-                          amount: data['amount'].toString(),
-                          status: status,
-                          statusColor: statusColor,
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
+                _buildStockTracker(),
+                const SizedBox(height: 30),
+                const _SectionTitle(title: "More Services"),
+                const SizedBox(height: 15),
+                _buildMoreServicesGrid(),
+                const SizedBox(height: 80),
               ],
             ),
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.notes_rounded, color: Colors.black, size: 30),
+        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: Colors.black,
+          ),
+          onPressed: () {},
+        ),
+        const Padding(
+          padding: EdgeInsets.only(right: 15),
+          child: CircleAvatar(
+            radius: 18,
+            backgroundColor: Colors.blue,
+            child: Icon(Icons.person, color: Colors.white, size: 20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWelcomeHeader(String name) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade900, Colors.blue.shade600],
+        ),
+        borderRadius: BorderRadius.circular(25),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "CareNexus Medical",
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            "Welcome, $name! 💊",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildHorizontalStats() {
+    return SizedBox(
+      height: 115,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          _buildQueryStatCard(
+            "Orders Today",
+            "orders",
+            Icons.shopping_cart_checkout,
+            Colors.blue,
+            targetPage: const OrdersPage(),
+          ),
+          _buildQueryStatCard(
+            "Low Stock",
+            "products",
+            Icons.warning_amber_rounded,
+            Colors.orange,
+            isLow: true,
+            targetPage: const LowStockPage(),
+          ),
+          _buildRevenueStatCard(),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
+    );
+  }
+
+  Widget _buildQueryStatCard(
+    String label,
+    String coll,
+    IconData icon,
+    Color color, {
+    bool isLow = false,
+    required Widget targetPage,
+  }) {
+    Query query = FirebaseFirestore.instance
+        .collection(coll)
+        .where('medicalId', isEqualTo: user?.uid);
+    if (isLow) query = query.where('quantity', isLessThan: 10);
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        String count = snapshot.hasData
+            ? snapshot.data!.docs.length.toString()
+            : "...";
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => targetPage),
+          ),
+          child: _buildStatUI(label, count, icon, color),
+        );
+      },
+    );
+  }
+
+  Widget _buildRevenueStatCard() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('medicalId', isEqualTo: user?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        double total = 0;
+        if (snapshot.hasData) {
+          for (var doc in snapshot.data!.docs) {
+            total += (doc.data() as Map<String, dynamic>)['totalPrice'] ?? 0.0;
+          }
+        }
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ReportsPage()),
+          ),
+          child: _buildStatUI(
+            "Revenue",
+            "\$${total.toStringAsFixed(1)}",
+            Icons.payments_outlined,
+            Colors.green,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatUI(String label, String value, IconData icon, Color color) {
+    return Container(
+      width: 155,
+      margin: const EdgeInsets.only(right: 15),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(icon, color: color, size: 26),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStockTracker() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .where('medicalId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return const Center(child: LinearProgressIndicator());
+
+        // Initialize counts
+        int tabletCount = 0;
+        int syrupCount = 0;
+        int vaccineCount = 0;
+
+        // Loop through Firebase data to sum up quantities
+        for (var doc in snapshot.data!.docs) {
+          var data = doc.data() as Map<String, dynamic>;
+          int qty = data['quantity'] ?? 0;
+          String category = data['category'] ?? "";
+
+          if (category == 'Tablets') tabletCount += qty;
+          if (category == 'Syrups') syrupCount += qty;
+          if (category == 'Vaccines') vaccineCount += qty;
+        }
+
+        // Calculate percentage (Assuming 1000 is your "Full Stock" capacity per category)
+        double tabletProgress = (tabletCount / 1000).clamp(0.0, 1.0);
+        double syrupProgress = (syrupCount / 1000).clamp(0.0, 1.0);
+        double vaccineProgress = (vaccineCount / 1000).clamp(0.0, 1.0);
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            ],
+          ),
+          child: Column(
+            children: [
+              _stockRow("Tablets", tabletProgress, Colors.blue, tabletCount),
+              const Divider(height: 30),
+              _stockRow("Syrups", syrupProgress, Colors.orange, syrupCount),
+              const Divider(height: 30),
+              _stockRow(
+                "Vaccines",
+                vaccineProgress,
+                Colors.green,
+                vaccineCount,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Updated helper to show the actual number alongside the bar
+  Widget _stockRow(
+    String title,
+    double progress,
+    Color color,
+    int actualCount,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            Text(
+              "$actualCount Units",
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: progress,
+          backgroundColor: color.withOpacity(0.1),
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+          minHeight: 8,
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMoreServicesGrid() {
+    final services = [
+      {
+        'n': 'Inventory',
+        'i': Icons.inventory,
+        'c': Colors.indigo,
+        'p': const InventoryPage(),
+      },
+      {
+        'n': 'Reports',
+        'i': Icons.analytics,
+        'c': Colors.teal,
+        'p': const ReportsPage(),
+      },
+      {
+        'n': 'Medicines',
+        'i': Icons.medical_services,
+        'c': Colors.purple,
+        'p': const MedicinesPage(),
+      },
+      {
+        'n': 'All Orders',
+        'i': Icons.history,
+        'c': Colors.amber,
+        'p': const NewOrderPage(),
+      },
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: services.length,
+      itemBuilder: (context, i) => GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => services[i]['p'] as Widget),
+        ),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundColor: (services[i]['c'] as Color).withOpacity(0.1),
+              child: Icon(
+                services[i]['i'] as IconData,
+                color: services[i]['c'] as Color,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              services[i]['n'] as String,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 32),
+  Widget _buildSidebar(String name, String email) {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade900, Colors.blue.shade600],
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
+            currentAccountPicture: const CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Icon(Icons.local_pharmacy, color: Colors.blue, size: 35),
+            ),
+            accountName: Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            ),
+            accountEmail: Text(email),
           ),
+          _drawerItem(
+            Icons.dashboard_rounded,
+            "Dashboard",
+            () => Navigator.pop(context),
+          ),
+          _drawerItem(
+            Icons.history_edu_rounded,
+            "Order History",
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NewOrderPage()),
+            ),
+          ),
+          _drawerItem(
+            Icons.logout_rounded,
+            "Sign Out",
+            logout,
+            color: Colors.redAccent,
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _drawerItem(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    Color? color,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? Colors.blueGrey),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color ?? Colors.black87,
+          fontWeight: FontWeight.w500,
         ),
       ),
+      onTap: onTap,
     );
   }
 }
 
-class _OrderCard extends StatelessWidget {
-  final String orderId;
-  final String customerName;
-  final String medicines;
-  final String amount;
-  final String status;
-  final Color statusColor;
-
-  const _OrderCard({
-    required this.orderId,
-    required this.customerName,
-    required this.medicines,
-    required this.amount,
-    required this.status,
-    required this.statusColor,
-  });
-
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  const _SectionTitle({required this.title});
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  orderId,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              customerName,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              medicines,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  amount,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios,
-                    size: 14, color: Colors.grey[400]),
-              ],
-            ),
-          ],
-        ),
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF1E293B),
       ),
     );
   }

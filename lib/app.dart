@@ -1,3 +1,5 @@
+import 'package:care_nexus/main.dart';
+import 'package:care_nexus/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auth/login_page.dart';
